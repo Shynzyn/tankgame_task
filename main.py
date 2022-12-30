@@ -40,11 +40,14 @@ bullet_ms = 5
 bullet_shooting = False
 offsetX = 0
 offsetY = 0
-bulletX = x + offsetX
-bulletY = y + offsetY
 bullet_angle = angle
 bullet_direction = "w"
+saved_player_direction = "w"
 reloaded = True
+saved_x = 0
+saved_y = 0
+bulletX = saved_x + offsetX
+bulletY = saved_y + offsetY
 
 # drawing player at coordinates
 def player(x, y, angle):
@@ -58,10 +61,10 @@ def enemy(x, y, angle):
 
 
 def fire_bullet(x, y, angle):
+    global bulletX, bulletY, offsetX, offsetY
     global bullet_shooting
     global reloaded
     bullet_shooting = True
-    reloaded = False
     # determine the direction the tank is facing
     if bullet_direction == "w":  # facing north
         offsetX = 16
@@ -75,9 +78,12 @@ def fire_bullet(x, y, angle):
     elif bullet_direction == "d":  # facing east
         offsetX = 60
         offsetY = 16
-    # shoot the bullet from the center of the tank
-    bulletX = x + offsetX
-    bulletY = y + offsetY
+    # shoot the bullet from the center of the tank\
+    if reloaded:
+        bulletX = saved_x + offsetX
+        bulletY = saved_y + offsetY
+    reloaded = False
+    print(bulletX, bulletY)
     # rotate the bullet image
     rotated = pygame.transform.rotate(bulletImg, angle)
     # draw the bullet on the screen
@@ -87,6 +93,7 @@ def fire_bullet(x, y, angle):
 
 running = True
 while running:
+    # print(movement_direction)
     clock.tick(60)  # limiting fps
     screen.fill((0, 160, 160))
     keys = pygame.key.get_pressed()
@@ -109,8 +116,6 @@ while running:
         reloaded = False
         # if the bullet goes off screen, stop shooting
         if bulletX < 0 or bulletX > 800 or bulletY < 0 or bulletY > 600:
-            bulletX = x
-            bulletY = y
             bullet_shooting = False
             reloaded = True
 
@@ -158,25 +163,25 @@ while running:
     # PLAYER MOVEMENT
 
     if movement_direction == "w":
-        bullet_direction = "w"
+        saved_player_direction = "w"
         angle = 0
         y -= move_speed
         fuel -= 1
         print(fuel)
     if movement_direction == "s":
-        bullet_direction = "s"
+        saved_player_direction = "s"
         angle = 180
         y += move_speed
         fuel -= 1
         print(fuel)
     if movement_direction == "a":
-        bullet_direction = "a"
+        saved_player_direction = "a"
         angle = 90
         x -= move_speed
         fuel -= 1
         print(fuel)
     if movement_direction == "d":
-        bullet_direction = "d"
+        saved_player_direction = "d"
         angle = 270
         x += move_speed
         fuel -= 1
@@ -194,8 +199,11 @@ while running:
         # Clear the movement direction if no keys are being pressed
         movement_direction = None
     if keys[pygame.K_SPACE] and reloaded:
+        saved_x = x
+        saved_y = y
+        bullet_angle = angle
         bullet_shooting = True
-
+        bullet_direction = saved_player_direction
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
