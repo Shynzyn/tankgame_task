@@ -12,7 +12,6 @@ pygame.display.set_caption("T A N K E R Z", "tank.ico")
 icon = pygame.image.load('tank.ico')
 pygame.display.set_icon(icon)
 
-explosion = pygame.image.load('xplosion.gif')
 
 # player
 player_img = pygame.image.load('tank_player.png')
@@ -34,6 +33,7 @@ enemy_delay = 2000
 enemy_surface = pygame.Surface((64, 64))
 enemy_rect = enemy_surface.get_rect()
 enemy_health = 3
+boom = False
 
 # other stuff
 counter = 0
@@ -56,6 +56,36 @@ saved_y = 0
 bulletX = saved_x + offsetX
 bulletY = saved_y + offsetY
 
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = []
+        for num in range(1, 6):
+            img = pygame.image.load(f"explosion_sprites/exp{num}.png")
+            img = pygame.transform.scale(img, (100, 100))
+            self.images.append(img)
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+        self.counter = 0
+
+    def update(self):
+        explosion_speed = 4
+        self.counter += 1
+        if self.counter >= explosion_speed and self.index < len(self.images) -1:
+            self.counter = 0
+            self.index += 1
+            self.image = self.images[self.index]
+
+        if self.index >= len(self.images) -1 and self.counter >= explosion_speed:
+            self.kill()
+
+explosion_group = pygame.sprite.Group()
+
+def make_boom():
+    explosion = Explosion(enemyX, enemyY)
+    explosion_group.add(explosion)
 # drawing player at coordinates
 def player(x, y, angle):
     rotated = pygame.transform.rotate(player_img, angle)
@@ -107,11 +137,17 @@ def check_collision(bullet_rect, enemy_rect):
 
 running = True
 while running:
+    explosion_group.draw(screen)
+    explosion_group.update()
     # print(movement_direction)
     clock.tick(60)  # limiting fps
     screen.fill((0, 160, 160))
     keys = pygame.key.get_pressed()
 
+    if boom:
+        make_boom()
+        print("boom")
+        boom = False
     # BULLET MOVEMENT
     if bullet_shooting is True:
         fire_bullet(bulletX, bulletY, bullet_angle)
@@ -246,6 +282,8 @@ while running:
         bullet_angle = angle
         bullet_shooting = True
         bullet_direction = saved_player_direction
+
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -253,4 +291,7 @@ while running:
     player(x, y, angle)
     if enemy_health > 0:
         enemy(enemyX, enemyY, enemy_angle)
+    else:
+        boom = True
+        make_boom()
     pygame.display.update()
