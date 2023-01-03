@@ -10,8 +10,9 @@ screen = pygame.display.set_mode((800, 600))
 # title and icon
 pygame.display.set_caption("T A N K E R Z", "tank.ico")
 icon = pygame.image.load('tank.ico')
-enemy_tank = pygame.image.load('enemy_tank2.png')
 pygame.display.set_icon(icon)
+
+explosion = pygame.image.load('xplosion.gif')
 
 # player
 player_img = pygame.image.load('tank_player.png')
@@ -23,12 +24,16 @@ movement_direction = None
 fuel = 1000
 
 # enemy
+enemy_tank = pygame.image.load('enemy_tank2.png')
 enemyX = 200
 enemyY = 200
 enemy_ms = 2
 enemy_direction = random.choice(["w", "s", "d", "a"])
 enemy_angle = 0
 enemy_delay = 2000
+enemy_surface = pygame.Surface((64, 64))
+enemy_rect = enemy_surface.get_rect()
+enemy_health = 3
 
 # other stuff
 counter = 0
@@ -36,6 +41,8 @@ random_distance = random.randint(200, 500)
 
 # bullet
 bulletImg = pygame.image.load('bullet.png')
+bullet_surface = pygame.Surface((20, 20))
+bullet_rect = bullet_surface.get_rect()
 bullet_ms = 5
 bullet_shooting = False
 offsetX = 0
@@ -83,12 +90,19 @@ def fire_bullet(x, y, angle):
         bulletX = saved_x + offsetX
         bulletY = saved_y + offsetY
     reloaded = False
-    print(bulletX, bulletY)
     # rotate the bullet image
     rotated = pygame.transform.rotate(bulletImg, angle)
     # draw the bullet on the screen
     screen.blit(rotated, (bulletX, bulletY))
 
+def check_collision(bullet_rect, enemy_rect):
+  # Use the colliderect() function to check if the bullet_rect and enemy_rect are colliding
+  if bullet_rect.colliderect(enemy_rect):
+    # If the rectangles are colliding, return True
+    return True
+  else:
+    # If the rectangles are not colliding, return False
+    return False
 
 
 running = True
@@ -97,6 +111,7 @@ while running:
     clock.tick(60)  # limiting fps
     screen.fill((0, 160, 160))
     keys = pygame.key.get_pressed()
+
     # BULLET MOVEMENT
     if bullet_shooting is True:
         fire_bullet(bulletX, bulletY, bullet_angle)
@@ -104,18 +119,39 @@ while running:
         if bullet_direction == "w":
             bullet_angle = 0
             bulletY -= bullet_ms
+            bullet_rect.x = bulletX
+            bullet_rect.y = bulletY
         elif bullet_direction == "s":
             bullet_angle = 180
             bulletY += bullet_ms
+            bullet_rect.x = bulletX
+            bullet_rect.y = bulletY
         elif bullet_direction == "a":
             bullet_angle = 90
             bulletX -= bullet_ms
+            bullet_rect.x = bulletX
+            bullet_rect.y = bulletY
         elif bullet_direction == "d":
             bullet_angle = 270
             bulletX += bullet_ms
+            bullet_rect.x = bulletX
+            bullet_rect.y = bulletY
         reloaded = False
-        # if the bullet goes off screen, stop shooting
+
+        # if the bullet goes off-screen, stop shooting
         if bulletX < 0 or bulletX > 800 or bulletY < 0 or bulletY > 600:
+            bullet_shooting = False
+            reloaded = True
+
+        if check_collision(bullet_rect, enemy_rect):
+            enemy_health -= 1
+            bulletX = -100
+            bulletY = -100
+            # Update the bullet rect to match the new position
+            bullet_rect.x = bulletX
+            bullet_rect.y = bulletY
+            print(enemy_health)
+            print("HIT!")
             bullet_shooting = False
             reloaded = True
 
@@ -123,6 +159,8 @@ while running:
     if enemy_direction == "w":
         enemy_angle = 0
         enemyY -= enemy_ms
+        enemy_rect.y = enemyY
+        enemy_rect.x = enemyX
         counter += 1
         if enemyY <= 0:
             enemy_direction = random.choice(["s", "d", "a"])
@@ -133,6 +171,8 @@ while running:
     if enemy_direction == "s":
         enemy_angle = 180
         enemyY += enemy_ms
+        enemy_rect.y = enemyY
+        enemy_rect.x = enemyX
         counter += 1
         if enemyY >= 600 - 64:  # 64 is the height of the object
             enemy_direction = random.choice(["w", "d", "a"])
@@ -143,6 +183,8 @@ while running:
     if enemy_direction == "a":
         enemy_angle = 90
         enemyX -= enemy_ms
+        enemy_rect.y = enemyY
+        enemy_rect.x = enemyX
         counter += 1
         if enemyX <= 0:
             enemy_direction = random.choice(["w", "s", "d"])
@@ -153,12 +195,16 @@ while running:
     if enemy_direction == "d":
         enemy_angle = 270
         enemyX += enemy_ms
+        enemy_rect.y = enemyY
+        enemy_rect.x = enemyX
         counter += 1
         if enemyX >= 800 - 64:  # 64 is the width of the object
             enemy_direction = random.choice(["w", "s", "a"])
         if counter > random_distance:
             enemy_direction = random.choice(["s", "w", "a"])
             counter = 0
+
+    # COLLISION DETECTION
 
     # PLAYER MOVEMENT
 
@@ -167,25 +213,21 @@ while running:
         angle = 0
         y -= move_speed
         fuel -= 1
-        print(fuel)
     if movement_direction == "s":
         saved_player_direction = "s"
         angle = 180
         y += move_speed
         fuel -= 1
-        print(fuel)
     if movement_direction == "a":
         saved_player_direction = "a"
         angle = 90
         x -= move_speed
         fuel -= 1
-        print(fuel)
     if movement_direction == "d":
         saved_player_direction = "d"
         angle = 270
         x += move_speed
         fuel -= 1
-        print(fuel)
 
     if keys[pygame.K_a] and fuel > 0 and x > 0:
         movement_direction = "a"
@@ -209,5 +251,6 @@ while running:
             running = False
 
     player(x, y, angle)
-    enemy(enemyX, enemyY, enemy_angle)
+    if enemy_health > 0:
+        enemy(enemyX, enemyY, enemy_angle)
     pygame.display.update()
