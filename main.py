@@ -12,6 +12,7 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("T A N K E R Z", "tank.ico")
 icon = pygame.image.load('sprites/tank.ico')
 pygame.display.set_icon(icon)
+bg = pygame.image.load('sprites/bgfortank.jpg')
 
 # background sound
 bg_music = mixer.Sound('sounds/background.wav')
@@ -49,6 +50,7 @@ enemy_delay = 2000
 enemy_surface = pygame.Surface((64, 64))
 enemy_rect = enemy_surface.get_rect()
 enemy_health = 3
+enemy_dead = False
 
 # other stuff
 counter = 0
@@ -71,6 +73,34 @@ saved_y = 0
 bulletX = saved_x + offsetX
 bulletY = saved_y + offsetY
 bullet_reload_frames = 120
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = []
+        for num in range(1, 6):
+            img = pygame.image.load(f"explosion_sprites/exp{num}.png")
+            img = pygame.transform.scale(img, (100, 100))
+            self.images.append(img)
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+        self.counter = 0
+
+    def update(self):
+        explosion_speed = 4
+        self.counter += 1
+        if self.counter >= explosion_speed and self.index < len(self.images) -1:
+            self.counter = 0
+            self.index += 1
+            self.image = self.images[self.index]
+
+        if self.index >= len(self.images) -1 and self.counter >= explosion_speed:
+            self.kill()
+
+explosion_group = pygame.sprite.Group()
 
 
 def game_over():
@@ -144,7 +174,9 @@ running = True
 while running:
     # print(movement_direction)
     clock.tick(60)  # limiting fps
-    screen.fill((0, 160, 160))
+    screen.blit(bg, (0,0))
+    explosion_group.draw(screen)
+    explosion_group.update()
     keys = pygame.key.get_pressed()
     bullet_reload_frames += 1
     if fuel <= 0:
@@ -181,6 +213,8 @@ while running:
             reloaded = True
 
         if check_collision(bullet_rect, enemy_rect):
+            saved_enemyX = enemyX
+            saved_enemyY = enemyY
             hit_sound = mixer.Sound('sounds/explosion.wav')
             hit_sound.play()
             enemy_health -= 1
@@ -293,6 +327,7 @@ while running:
         fuel = 1000
         score = 0
         #reset enemy
+        enemy_health = 3
         enemyX = 200
         enemyY = 200
         enemy_ms = 2
@@ -329,6 +364,11 @@ while running:
     enemy(enemyX, enemyY, enemy_angle)
     show_score_fuel(fuel_X, fuel_Y, score_X,score_Y)
     if enemy_health <= 0:
+        enemy_dead = True
+        if enemy_dead:
+            explosion = Explosion(enemyX, enemyY)
+            explosion_group.add(explosion)
+            enemy_dead = False
         enemyX = random.randint(10, 740)
         enemyY = random.randint(10, 540)
         enemy_health = 3
