@@ -5,22 +5,21 @@ from pygame import mixer
 # initialize
 pygame.init()
 clock = pygame.time.Clock()
-# create screen
+# create screenw
 screen = pygame.display.set_mode((800, 600))
 
 # title and icon
 pygame.display.set_caption("T A N K E R Z", "tank.ico")
-icon = pygame.image.load('tank.ico')
+icon = pygame.image.load('sprites/tank.ico')
 pygame.display.set_icon(icon)
 
-explosion = pygame.image.load('xplosion.gif')
 # background sound
-bg_music = mixer.Sound('background.wav')
+bg_music = mixer.Sound('sounds/background.wav')
 bg_music.set_volume(0.4)
 bg_music.play(-1)
 
 # player
-player_img = pygame.image.load('tank_player.png')
+player_img = pygame.image.load('sprites/tank_player.png')
 x = 368
 y = 380
 move_speed = 2.5
@@ -31,7 +30,7 @@ movement_direction = None
 # SCORE AND FUEL
 fuel = 1000
 score = 0
-font_path = 'ARCADECLASSIC.TTF'
+font_path = 'fonts/ARCADECLASSIC.TTF'
 font = pygame.font.Font(font_path, 24)
 font_game_over = pygame.font.Font(font_path, 80)
 fuel_X = 10
@@ -40,7 +39,7 @@ score_X = 660
 score_Y = 10
 
 # enemy
-enemy_tank = pygame.image.load('enemy_tank2.png')
+enemy_tank = pygame.image.load('sprites/enemy_tank2.png')
 enemyX = 200
 enemyY = 200
 enemy_ms = 2
@@ -56,7 +55,7 @@ counter = 0
 random_distance = random.randint(200, 500)
 
 # bullet
-bulletImg = pygame.image.load('bullet.png')
+bulletImg = pygame.image.load('sprites/bullet.png')
 bullet_surface = pygame.Surface((20, 20))
 bullet_rect = bullet_surface.get_rect()
 bullet_ms = 5
@@ -76,10 +75,12 @@ bullet_reload_frames = 120
 
 def game_over():
     global gameover
+    global reloaded
     display_game_over = font_game_over.render('game    over', True, 'white')
     screen.blit(display_game_over, (205, 170))
     display_restart = font.render('press    r   to   restart', True, 'black')
     screen.blit(display_restart, (295, 240))
+    reloaded = False
     gameover = True
 
 def show_score_fuel(fx, fy, sx, sy):
@@ -180,7 +181,7 @@ while running:
             reloaded = True
 
         if check_collision(bullet_rect, enemy_rect):
-            hit_sound = mixer.Sound('explosion.wav')
+            hit_sound = mixer.Sound('sounds/explosion.wav')
             hit_sound.play()
             enemy_health -= 1
             bulletX = -100
@@ -279,7 +280,7 @@ while running:
         # Clear the movement direction if no keys are being pressed
         movement_direction = None
     if keys[pygame.K_SPACE] and reloaded and bullet_reload_frames >= 60:
-        bullet_sound = mixer.Sound('laser.wav')
+        bullet_sound = mixer.Sound('sounds/laser.wav')
         bullet_sound.play()
         bullet_reload_frames = 0
         saved_x = x
