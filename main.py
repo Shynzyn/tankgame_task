@@ -1,5 +1,6 @@
 import pygame
 import random
+from pygame import mixer
 
 # initialize
 pygame.init()
@@ -13,6 +14,10 @@ icon = pygame.image.load('tank.ico')
 pygame.display.set_icon(icon)
 
 explosion = pygame.image.load('xplosion.gif')
+# background sound
+bg_music = mixer.Sound('background.wav')
+bg_music.set_volume(0.4)
+bg_music.play(-1)
 
 # player
 player_img = pygame.image.load('tank_player.png')
@@ -21,7 +26,18 @@ y = 380
 move_speed = 2.5
 angle = 0
 movement_direction = None
+
+
+# SCORE AND FUEL
 fuel = 1000
+score = 0
+font_path = 'ARCADECLASSIC.TTF'
+font = pygame.font.Font(font_path, 24)
+font_game_over = pygame.font.Font(font_path, 80)
+fuel_X = 10
+fuel_Y = 10
+score_X = 660
+score_Y = 10
 
 # enemy
 enemy_tank = pygame.image.load('enemy_tank2.png')
@@ -55,6 +71,23 @@ saved_x = 0
 saved_y = 0
 bulletX = saved_x + offsetX
 bulletY = saved_y + offsetY
+bullet_reload_frames = 120
+
+
+def game_over():
+    global gameover
+    display_game_over = font_game_over.render('game    over', True, 'white')
+    screen.blit(display_game_over, (205, 170))
+    display_restart = font.render('press    r   to   restart', True, 'black')
+    screen.blit(display_restart, (295, 240))
+    gameover = True
+
+def show_score_fuel(fx, fy, sx, sy):
+    fuel_W = font.render("Fuel " + str(fuel), True, (255, 255, 255))
+    score_W = font.render("Score " + str(score), True, (255, 255, 255))
+    screen.blit(fuel_W, (fx, fy))
+    screen.blit(score_W, (sx, sy))
+
 
 # drawing player at coordinates
 def player(x, y, angle):
@@ -95,14 +128,15 @@ def fire_bullet(x, y, angle):
     # draw the bullet on the screen
     screen.blit(rotated, (bulletX, bulletY))
 
+
 def check_collision(bullet_rect, enemy_rect):
-  # Use the colliderect() function to check if the bullet_rect and enemy_rect are colliding
-  if bullet_rect.colliderect(enemy_rect):
-    # If the rectangles are colliding, return True
-    return True
-  else:
-    # If the rectangles are not colliding, return False
-    return False
+    # Use the colliderect() function to check if the bullet_rect and enemy_rect are colliding
+    if bullet_rect.colliderect(enemy_rect):
+        # If the rectangles are colliding, return True
+        return True
+    else:
+        # If the rectangles are not colliding, return False
+        return False
 
 
 running = True
@@ -111,7 +145,9 @@ while running:
     clock.tick(60)  # limiting fps
     screen.fill((0, 160, 160))
     keys = pygame.key.get_pressed()
-
+    bullet_reload_frames += 1
+    if fuel <= 0:
+        game_over()
     # BULLET MOVEMENT
     if bullet_shooting is True:
         fire_bullet(bulletX, bulletY, bullet_angle)
@@ -144,6 +180,8 @@ while running:
             reloaded = True
 
         if check_collision(bullet_rect, enemy_rect):
+            hit_sound = mixer.Sound('explosion.wav')
+            hit_sound.play()
             enemy_health -= 1
             bulletX = -100
             bulletY = -100
@@ -240,17 +278,59 @@ while running:
     else:
         # Clear the movement direction if no keys are being pressed
         movement_direction = None
-    if keys[pygame.K_SPACE] and reloaded:
+    if keys[pygame.K_SPACE] and reloaded and bullet_reload_frames >= 60:
+        bullet_sound = mixer.Sound('laser.wav')
+        bullet_sound.play()
+        bullet_reload_frames = 0
         saved_x = x
         saved_y = y
         bullet_angle = angle
         bullet_shooting = True
         bullet_direction = saved_player_direction
+
+    if keys[pygame.K_r]:
+        fuel = 1000
+        score = 0
+        #reset enemy
+        enemyX = 200
+        enemyY = 200
+        enemy_ms = 2
+        enemy_direction = random.choice(["w", "s", "d", "a"])
+        enemy_angle = 0
+        enemy_delay = 2000
+        #reset player
+        x = 368
+        y = 380
+        move_speed = 2.5
+        angle = 0
+        movement_direction = None
+        #reset bullet
+        bullet_shooting = False
+        offsetX = 0
+        offsetY = 0
+        bullet_angle = angle
+        bullet_direction = "w"
+        saved_player_direction = "w"
+        reloaded = True
+        saved_x = 0
+        saved_y = 0
+        bulletX = saved_x + offsetX
+        bulletY = saved_y + offsetY
+        gameover = False
+
+
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
     player(x, y, angle)
-    if enemy_health > 0:
-        enemy(enemyX, enemyY, enemy_angle)
+    enemy(enemyX, enemyY, enemy_angle)
+    show_score_fuel(fuel_X, fuel_Y, score_X,score_Y)
+    if enemy_health <= 0:
+        enemyX = random.randint(10, 740)
+        enemyY = random.randint(10, 540)
+        enemy_health = 3
+        score += 100
+        fuel += 150
     pygame.display.update()
